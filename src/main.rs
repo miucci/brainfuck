@@ -2,6 +2,9 @@ use std::io::Read;
 
 fn main() {
     let code = parse_args();
+    if !bracets_match(&code) {
+        exit_error("unmatched bracets");
+    }
     let mut data: [u8; 30_000] = [0; 30_000];
     let mut ip: usize = 0;
     let mut dp: usize = 0;
@@ -100,6 +103,21 @@ fn find_matching_bracet(code: &[char], index: usize) -> Option<usize> {
         }
         _ => None,
     }
+}
+
+fn bracets_match(code: &[char]) -> bool {
+    let mut bracet_count = 0;
+    for c in code {
+        match c {
+            '[' => bracet_count += 1,
+            ']' => bracet_count -= 1,
+            _ => {}
+        }
+        if bracet_count < 0 {
+            return false;
+        }
+    }
+    bracet_count == 0
 }
 
 #[cfg(test)]
