@@ -12,35 +12,55 @@ fn main() {
             '+' => data[dp] = data[dp].wrapping_add(1),
             '-' => data[dp] = data[dp].wrapping_sub(1),
             '.' => print!("{}", data[dp] as char),
-            ',' => data[dp] = std::io::stdin().bytes().next().unwrap().unwrap(),
+            ',' => {
+                data[dp] = std::io::stdin()
+                    .bytes()
+                    .next()
+                    .unwrap_or(Ok(0))
+                    .unwrap_or(0)
+            }
             '[' => {
                 if data[dp] == 0 {
-                    ip = find_matching_bracet(&code, ip) + 1;
+                    ip = find_matching_bracet(&code, ip)
+                        .unwrap_or_else(|| exit_error("unmatched bracets"))
+                        + 1;
                     continue;
                 }
             }
             ']' => {
                 if data[dp] != 0 {
-                    ip = find_matching_bracet(&code, ip) + 1;
+                    ip = find_matching_bracet(&code, ip)
+                        .unwrap_or_else(|| exit_error("unmatched bracets"))
+                        + 1;
                     continue;
                 }
             }
             _ => {}
         }
         ip += 1;
+        if ip >= code.len() {
+            break;
+        }
     }
+}
+
+fn exit_error(msg: &str) -> ! {
+    eprintln!("ERROR: {msg}");
+    std::process::exit(1);
 }
 
 fn parse_args() -> Vec<char> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
-        eprintln!("invalid number of arguments");
-        std::process::exit(1);
+        exit_error("invalid number of arguments");
     }
-    std::fs::read_to_string(&args[1]).unwrap().chars().collect()
+    std::fs::read_to_string(&args[1])
+        .unwrap_or_else(|_| exit_error("could no open file"))
+        .chars()
+        .collect()
 }
 
-fn find_matching_bracet(code: &[char], index: usize) -> usize {
+fn find_matching_bracet(code: &[char], index: usize) -> Option<usize> {
     match code[index] {
         '[' => {
             let mut bracet_count = 1;
@@ -52,9 +72,12 @@ fn find_matching_bracet(code: &[char], index: usize) -> usize {
                     _ => {}
                 }
                 if bracet_count == 0 {
-                    break index + i;
+                    break Some(index + i);
                 }
                 i += 1;
+                if index + i >= code.len() {
+                    break None;
+                }
             }
         }
         ']' => {
@@ -67,12 +90,15 @@ fn find_matching_bracet(code: &[char], index: usize) -> usize {
                     _ => {}
                 }
                 if bracet_count == 0 {
-                    break index - i;
+                    break Some(index - i);
+                }
+                if index - i == 0 {
+                    break None;
                 }
                 i += 1;
             }
         }
-        _ => panic!(),
+        _ => None,
     }
 }
 
@@ -83,8 +109,8 @@ mod tests {
     #[test]
     fn find_matching() {
         let code: Vec<char> = "+++[++<-[]]".chars().collect();
-        assert_eq!(3, find_matching_bracet(&code, 10));
-        assert_eq!(10, find_matching_bracet(&code, 3));
-        assert_eq!(8, find_matching_bracet(&code, 9));
+        assert_eq!(Some(3), find_matching_bracet(&code, 10));
+        assert_eq!(Some(10), find_matching_bracet(&code, 3));
+        assert_eq!(Some(8), find_matching_bracet(&code, 9));
     }
 }
